@@ -1,6 +1,6 @@
 ---
 name: schema-guided-reasoning-pydantic
-description: Build a Pydantic JSON Schema for LLM structured output (constrained decoding) so agents get valid JSON every turn—not best-effort parsing. Then use Schema-Guided Reasoning: shape and field order steer the model along your decision path, which often lifts smaller models too. Use it when you need reliable, debuggable structured responses.
+description: Design or refactor a Pydantic schema for LLM structured output using Schema-Guided Reasoning (SGR). Use when designing a response_format schema, adding route locks with Literal fields, choosing between Cascade/Routing/Cycle patterns, checking OpenAI or Gemini structured output compatibility, or making a model follow a specific reasoning path via constrained decoding.
 ---
 
 # Schema-Guided Reasoning for Pydantic

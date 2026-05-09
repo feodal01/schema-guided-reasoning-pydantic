@@ -2,6 +2,52 @@
 
 An LLM skill for building strict Pydantic schemas for structured output using **Schema-Guided Reasoning (SGR)**.
 
+## Installation
+
+### Claude Code (global — all projects)
+
+```bash
+mkdir -p ~/.claude/skills/schema-guided-reasoning-pydantic
+git clone https://github.com/feodal01/schema-guided-reasoning-pydantic \
+  ~/.claude/skills/schema-guided-reasoning-pydantic
+```
+
+### Codex CLI (global — all projects)
+
+```bash
+mkdir -p ~/.agents/skills/schema-guided-reasoning-pydantic
+git clone https://github.com/feodal01/schema-guided-reasoning-pydantic \
+  ~/.agents/skills/schema-guided-reasoning-pydantic
+```
+
+### Project-local (checked into repo, shared with team)
+
+```bash
+# Claude Code
+mkdir -p .claude/skills
+git clone https://github.com/feodal01/schema-guided-reasoning-pydantic \
+  .claude/skills/schema-guided-reasoning-pydantic
+
+# Codex CLI
+mkdir -p .agents/skills
+git clone https://github.com/feodal01/schema-guided-reasoning-pydantic \
+  .agents/skills/schema-guided-reasoning-pydantic
+```
+
+After installing, Claude Code picks up the skill automatically (no restart needed for existing sessions if the directory already existed; restart once if it's a new directory). Codex detects skill changes automatically.
+
+### Invoke
+
+```
+# Explicit
+/schema-guided-reasoning-pydantic
+
+# Or just describe what you need — the skill triggers automatically:
+Design a strict Pydantic schema for a judge that evaluates answer faithfulness.
+```
+
+---
+
 ## What problem it solves
 
 LLM APIs without a JSON Schema on the structured-output endpoint don't guarantee valid JSON on every call—agents silently fail when parsing breaks. This skill covers two things:
