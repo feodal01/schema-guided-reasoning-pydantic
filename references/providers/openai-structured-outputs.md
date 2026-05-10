@@ -10,13 +10,23 @@ Rules and nuances for the **OpenAI Structured Outputs** transport. Canonical ups
 
 **Without `strict: true`, OpenAI enforces nothing.** Adversarial tests (prompt instructs the model to violate the schema) on `gpt-4o-mini` without strict confirmed: all constraints—`enum`, required fields, `additionalProperties`, numeric bounds, `pattern`, `maxItems`—were ignored 5/5 times. The model followed the prompt, not the schema.
 
-**With `strict: true`, all tested constraints were enforced 5/5 adversarial runs:**
-- Single-value `enum` / Literal route lock ✅
-- Required fields ✅
-- `additionalProperties: false` ✅
-- `maximum` / `minimum` on numbers ✅
-- `maxItems` / `minItems` on arrays ✅
-- `pattern` on strings ✅
+**With `strict: true`, all tested constraints were enforced (adversarial runs):**
+
+| Constraint | Result |
+|---|---|
+| `enum` / Literal route lock | ✅ |
+| Required fields | ✅ |
+| `additionalProperties: false` | ✅ |
+| `maximum` / `minimum` | ✅ |
+| `exclusiveMaximum` / `exclusiveMinimum` (`lt` / `gt`) | ✅ |
+| `maxLength` / `minLength` (string) | ✅ |
+| `multipleOf` | ✅ |
+| `maxItems` / `minItems` | ✅ |
+| `pattern` | ✅ |
+| `anyOf` (nullable `T \| None`, `Union[A, B]`) | ✅ |
+| `$defs` / `$ref` reuse | ✅ |
+| `oneOf` (discriminated union) | 💥 400 API error |
+| `allOf` (inheritance) | 💥 400 API error |
 
 Always set `strict: true`. Without it, your schema is a hint, not a contract.
 
@@ -59,11 +69,13 @@ Treat this as a **transport profile**: field order, branch locks, and reasoning 
 
 OpenAI documents these as unsupported for fine-tuned models, yet adversarial tests on base models (`gpt-4o-mini`) show they are enforced with `strict: true`:
 
-- `maximum` / `minimum`, `maxItems` / `minItems`, `pattern`
+- `maximum` / `minimum`, `exclusiveMaximum` / `exclusiveMinimum`
+- `maxItems` / `minItems`, `maxLength` / `minLength`
+- `multipleOf`, `pattern`
 
 Use them, but know they may fail on fine-tuned model variants. Back up with server-side `model_validate` anyway.
 
-**Genuinely unsupported** (will fail at request time with strict=True): composition keywords `allOf`, `not`, `dependentRequired`, `dependentSchemas`, `if`, `then`, `else`.
+**Cause 400 API errors** (rejected at request time with `strict=True`): `oneOf`, `allOf`, `not`, `dependentRequired`, `dependentSchemas`, `if`, `then`, `else`.
 
 ---
 
@@ -80,5 +92,5 @@ Schema guarantees apply to **successful** generations. The API can return `refus
 - [ ] Every object has `additionalProperties: false`.
 - [ ] Every field is in `required`; optional semantics use `T | null`.
 - [ ] Property / nesting / enum / string length counts within documented limits.
-- [ ] No composition keywords (`allOf`, `not`, `if/then/else`).
+- [ ] No unsupported composition keywords (`oneOf`, `allOf`, `not`, `if/then/else`) — these cause 400 errors.
 - [ ] Caller handles `refusal` / `incomplete` before parsing.

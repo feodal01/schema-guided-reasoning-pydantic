@@ -11,6 +11,19 @@ Use **prompt + schema** together; neither replaces the other.
 
 **Calling APIs with your Pydantic schema:** copy-ready OpenAI (`chat.completions.parse`) and Gemini (`google-genai` + `model_json_schema()`) snippets live in [`references/api-call-examples.md`](references/api-call-examples.md).
 
+## Provider enforcement: empirical data, not permanent truth
+
+The constraint enforcement tables in `references/cross-cutting-caveats.md` and per-provider files are based on **adversarial tests run against real APIs at a specific point in time**. Provider SO implementations change—new model versions, API updates, and backend changes can silently alter which constraints are enforced.
+
+**Before relying on any constraint as a hard guarantee:**
+1. Test your actual schema adversarially against your actual provider.
+2. Re-verify after any provider or model upgrade.
+3. Always validate server-side with `model_validate` regardless of what the table says.
+
+Treat the tables as a useful starting point, not a specification.
+
+---
+
 ## Non-negotiable guardrails
 
 1. Encode route choice with single-value `Literal[...]` fields (branch locks).

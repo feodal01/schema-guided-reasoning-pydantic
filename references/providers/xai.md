@@ -6,18 +6,32 @@ xAI's API is OpenAI-compatible. Use the OpenAI Python SDK with the xAI base URL.
 
 ---
 
-## Adversarial enforcement results (grok-3-mini, 5/5 runs each)
+## Adversarial enforcement results (grok-3-mini)
 
-All tested constraints were fully enforced even when the prompt explicitly instructed the model to violate the schema:
+### Enforced (adversarial, no `strict: true` needed)
 
-| Constraint | Result |
-|---|---|
-| `maxItems` / `minItems` on arrays | ✅ enforced |
-| `maximum` / `minimum` on numbers | ✅ enforced |
-| `pattern` on strings | ✅ enforced |
-| Single-value `enum` / Literal route lock | ✅ enforced |
-| Required fields | ✅ enforced |
-| `additionalProperties: false` | ✅ enforced |
+| Constraint | Pydantic | Result |
+|---|---|---|
+| `enum` / Literal route lock | `Literal[...]` | ✅ |
+| Required fields | BaseModel default | ✅ |
+| `additionalProperties: false` | `ConfigDict(extra="forbid")` | ✅ |
+| `maximum` / `minimum` | `Field(le=, ge=)` | ✅ |
+| `exclusiveMaximum` / `exclusiveMinimum` | `Field(lt=, gt=)` | ✅ |
+| `maxLength` / `minLength` (string) | `Field(max_length=, min_length=)` on str | ✅ |
+| `multipleOf` | `Field(multiple_of=)` | ✅ |
+| `maxItems` / `minItems` | `Field(max_length=, min_length=)` on list | ✅ |
+| `pattern` | `Field(pattern=)` | ✅ |
+| Nested object (2 levels) | nested BaseModel | ✅ |
+| `$defs` / `$ref` reuse | shared sub-models | ✅ |
+| `anyOf` (nullable `T \| None`) | `Optional[T]` | ✅ |
+| `anyOf` (`Union[A, B]`) | `Union[A, B]` | ✅ |
+| `oneOf` (discriminated union) | Literal-discriminated union | ✅ |
+
+### Not enforced
+
+| Constraint | Result | Note |
+|---|---|---|
+| `allOf` (schema inheritance) | ❌ returns `{}` | Flatten parent fields into child model |
 
 Unlike OpenAI, xAI does not require `strict: true` for constraint enforcement to apply.
 

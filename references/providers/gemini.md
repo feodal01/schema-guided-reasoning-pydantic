@@ -16,24 +16,33 @@ More permissive around optional/nullable fields and nested schemas than strict O
 
 Unlike OpenAI, Gemini enforces constraints **without** needing `strict: true` in the request. Tested on `gemini-2.0-flash` using adversarial prompts (prompt instructs the model to violate the schema):
 
-### Enforced (adversarial, 5/5 runs)
+### Enforced (adversarial)
 
-| Constraint | Result |
-|---|---|
-| `maxItems` on arrays | ✅ enforced |
-| `maximum` / `minimum` on numbers | ✅ enforced |
-| Single-value `enum` / Literal route lock | ✅ enforced |
-| Required fields | ✅ enforced |
-| `additionalProperties: false` | ✅ enforced |
+| Constraint | Pydantic | Result |
+|---|---|---|
+| `maximum` / `minimum` | `Field(le=, ge=)` | ✅ |
+| `maxItems` on arrays | `Field(max_length=)` on list | ✅ |
+| Single-value `enum` / Literal route lock | `Literal[...]` | ✅ |
+| Required fields | BaseModel default | ✅ |
+| `additionalProperties: false` | `ConfigDict(extra="forbid")` | ✅ |
+| Nested object (2 levels) | nested BaseModel | ✅ |
+| `anyOf` (nullable `T \| None`) | `Optional[T]` / `T \| None` | ✅ |
+| `anyOf` (`Union[A, B]`) | `Union[A, B]` | ✅ |
+| `oneOf` (discriminated union) | Literal-discriminated union | ✅ |
 
 ### Not enforced
 
-| Constraint | Result | Note |
-|---|---|---|
-| `pattern` on strings | ❌ 0/5 | Model follows prompt, ignores pattern |
-| `minItems` on arrays | ⚠️ 4/5 | Partial: 1 run returned API error |
+| Constraint | Pydantic | Result | Note |
+|---|---|---|---|
+| `exclusiveMaximum` / `exclusiveMinimum` | `Field(lt=, gt=)` | ❌ | Model ignores exclusive bounds |
+| `maxLength` / `minLength` (string) | `Field(max_length=, min_length=)` on str | ❌ | Model ignores length bounds |
+| `multipleOf` | `Field(multiple_of=)` | ❌ | Model ignores |
+| `pattern` | `Field(pattern=)` | ❌ | Model follows prompt, ignores pattern |
+| `minItems` on arrays | `Field(min_length=)` on list | ⚠️ partial | Intermittent enforcement |
+| `allOf` (inheritance) | subclassing BaseModel | ❌ | Returns `{}` — schema not resolved |
+| `const` inside `$defs` | `Literal[...]` in sub-model via `$ref` | ⚠️ | May not be enforced; use direct `enum` |
 
-**`pattern` is not enforced on Gemini OpenAI-compatible.** Do not rely on it as a hard guarantee. Validate server-side.
+**`pattern`, string/number bounds, and `allOf` are not enforced on Gemini OpenAI-compatible.** Validate these server-side.
 
 ### Critical: `max_tokens` must be generous
 
@@ -44,5 +53,6 @@ Gemini 2.5 Flash is verbose. When the schema contains open-ended `string` fields
 ### SGR implication
 
 - Keep a **canonical** semantic schema.
-- For this transport: set generous `max_tokens`; back `pattern` with server-side validation; treat `minItems` as probabilistic.
-- Prefer **simple branch containers** when complex nested constraints behave unexpectedly.
+- For this transport: set generous `max_tokens`; back `pattern`, string/number bounds, and `allOf` with server-side validation.
+- Treat `minItems` as probabilistic; prefer branch containers over complex union arrays.
+- Avoid schema inheritance (`allOf`) — flatten parent fields into the child model instead.
