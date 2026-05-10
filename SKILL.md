@@ -98,4 +98,5 @@ Each item model carries its branch literal and its own code set; empty list mean
 | Cross-cutting caveats (all providers) | [`references/cross-cutting-caveats.md`](references/cross-cutting-caveats.md) |
 | OpenAI transport | [`references/providers/openai-structured-outputs.md`](references/providers/openai-structured-outputs.md) |
 | Gemini transports | [`references/providers/gemini.md`](references/providers/gemini.md) |
+| xAI / Grok transport | [`references/providers/xai.md`](references/providers/xai.md) |
 | API examples (OpenAI + Gemini + Pydantic) | [`references/api-call-examples.md`](references/api-call-examples.md) |

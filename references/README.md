@@ -8,5 +8,6 @@
 | OpenAI Structured Outputs transport rules | [providers/openai-structured-outputs.md](./providers/openai-structured-outputs.md) |
 | Gemini native vs OpenAI-compatible behavior | [providers/gemini.md](./providers/gemini.md) |
 | OpenAI / Gemini API calls with Pydantic schema | [api-call-examples.md](./api-call-examples.md) |
+| xAI (Grok) behavior | [providers/xai.md](./providers/xai.md) |
 
 Start from `SKILL.md`, then open the provider file that matches your runtime.
