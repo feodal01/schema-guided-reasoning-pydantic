@@ -6,24 +6,28 @@ xAI's API is OpenAI-compatible. Use the OpenAI Python SDK with the xAI base URL.
 
 ---
 
-## Observed behavior (Grok 3 Mini)
+## Adversarial enforcement results (grok-3-mini, 5/5 runs each)
 
-All features tested worked reliably (3/3 runs each):
+All tested constraints were fully enforced even when the prompt explicitly instructed the model to violate the schema:
 
-| Feature | Result |
-|---------|--------|
-| Basic `response_format` JSON Schema | ✅ |
-| `strict: true` in request | ✅ (accepted without error) |
+| Constraint | Result |
+|---|---|
+| `maxItems` / `minItems` on arrays | ✅ enforced |
+| `maximum` / `minimum` on numbers | ✅ enforced |
+| `pattern` on strings | ✅ enforced |
+| Single-value `enum` / Literal route lock | ✅ enforced |
+| Required fields | ✅ enforced |
 | `additionalProperties: false` | ✅ enforced |
-| Single-value `enum` (Literal route lock) | ✅ |
-| Nullable required fields (`type: ["string", "null"]`) | ✅ |
-| `minItems` / `maxItems` on arrays | ✅ |
-| `minimum` / `maximum` on numbers | ✅ |
-| `pattern` on strings | ✅ |
+
+Unlike OpenAI, xAI does not require `strict: true` for constraint enforcement to apply.
+
+---
 
 ## SGR implication
 
-Use the same schema you designed for OpenAI Structured Outputs. No special transport derivative needed for xAI based on current observations. Still validate server-side—empirical coverage here is limited to a basic feature matrix.
+Use the same schema you designed for OpenAI (with `strict: true`). No special transport derivative needed for xAI based on current observations. Still validate server-side—empirical coverage here is one model and one model version.
+
+---
 
 ## Available models (as of May 2026)
 

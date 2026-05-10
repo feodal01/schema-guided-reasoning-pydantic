@@ -1,53 +1,84 @@
 # OpenAI Structured Outputs
 
-Rules and nuances for the **OpenAI Structured Outputs** transport (strict JSON Schema subset). Canonical upstream guide: [Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs).
+Rules and nuances for the **OpenAI Structured Outputs** transport. Canonical upstream guide: [Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs).
 
 **Python:** minimal `chat.completions.parse` + Pydantic example → [`../api-call-examples.md`](../api-call-examples.md#openai-python-sdk-parse).
 
+---
+
+## Critical: `strict: true` is mandatory
+
+**Without `strict: true`, OpenAI enforces nothing.** Adversarial tests (prompt instructs the model to violate the schema) on `gpt-4o-mini` without strict confirmed: all constraints—`enum`, required fields, `additionalProperties`, numeric bounds, `pattern`, `maxItems`—were ignored 5/5 times. The model followed the prompt, not the schema.
+
+**With `strict: true`, all tested constraints were enforced 5/5 adversarial runs:**
+- Single-value `enum` / Literal route lock ✅
+- Required fields ✅
+- `additionalProperties: false` ✅
+- `maximum` / `minimum` on numbers ✅
+- `maxItems` / `minItems` on arrays ✅
+- `pattern` on strings ✅
+
+Always set `strict: true`. Without it, your schema is a hint, not a contract.
+
+```python
+response_format={
+    "type": "json_schema",
+    "json_schema": {"name": "my_schema", "schema": MyModel.model_json_schema(), "strict": True}
+}
+```
+
+---
+
 ## Role in an SGR workflow
 
-Treat this API as a **transport profile**: it constrains which JSON Schema shapes are legal at request time and how keys are emitted on success. SGR still owns *what* must be reasoned and in *what order*; OpenAI’s profile defines *how* that must be expressible in schema for this endpoint.
+Treat this as a **transport profile**: field order, branch locks, and reasoning checkpoints are SGR's job; strict mode is what makes the API server actually honour them.
+
+---
 
 ## Contract (strict subset)
 
-- JSON Schema is **not** full draft support—only a documented strict subset.
-- **Root** must be an `object`. **No** top-level `anyOf`.
-- **Every** object field must appear in `required`. Model “optional” values as a union with `null` (in JSON Schema terms, e.g. `type: [T, "null"]`), not by omitting keys from `required`.
-- **Every** object must set `additionalProperties: false`. In Pydantic: `ConfigDict(extra="forbid")` on each exported object model.
-- **Key order:** the model tends to emit object keys in **schema declaration order**—treat field order as a first-class SGR control (reasoning and route locks first).
-- **`$defs` / recursion:** supported; prefer reuse over duplicating large trees.
-- **`strict: true`:** unsupported keywords and shapes **fail at request time**—preflight the exported schema before production calls.
+- Root must be an `object`. No top-level `anyOf`.
+- Every field must appear in `required`. Model optional values as `T | null` (required, nullable), not as omitted fields.
+- Every object must set `additionalProperties: false`. In Pydantic: `ConfigDict(extra="forbid")`.
+- Key ordering matters: OpenAI tends to emit keys in schema declaration order—use this as an SGR control surface (reasoning and route locks first).
+- `$defs` / recursion: supported; reuse instead of duplicating large trees.
 
-## Hard limits (from OpenAI’s guide)
+---
 
-- At most **5,000** object properties (total).
+## Hard limits (from OpenAI guide)
+
+- At most **5,000** object properties total.
 - At most **10** nesting levels.
 - At most **120,000** characters across property names, definition names, enum values, and const values.
 - At most **1,000** enum values in the whole schema.
-- If a single string enum has **> 250** values, combined enum string length must stay under **15,000** characters.
+- Single string enum with **> 250** values: combined length must stay under 15,000 characters.
 
-## Unsupported / risky keywords (strict mode)
+---
 
-**Generally unsupported** composition and conditionals, including: `allOf`, `not`, `dependentRequired`, `dependentSchemas`, `if`, `then`, `else`.
+## Keywords that are "unsupported" but work in practice
 
-**Fine-tuned models (additional avoid list):** string `minLength`, `maxLength`, `pattern`, `format`; number `minimum`, `maximum`, `multipleOf`; object `patternProperties`; array `minItems`, `maxItems`.
+OpenAI documents these as unsupported for fine-tuned models, yet adversarial tests on base models (`gpt-4o-mini`) show they are enforced with `strict: true`:
 
-## Response path vs schema
+- `maximum` / `minimum`, `maxItems` / `minItems`, `pattern`
 
-- Schema guarantees apply to **successful** structured generations.
-- The API can return **`refusal`** or **`incomplete`** (or other non-success paths). The **caller must branch** on these before assuming the body matches your Pydantic model.
+Use them, but know they may fail on fine-tuned model variants. Back up with server-side `model_validate` anyway.
 
-## Pydantic habits
+**Genuinely unsupported** (will fail at request time with strict=True): composition keywords `allOf`, `not`, `dependentRequired`, `dependentSchemas`, `if`, `then`, `else`.
 
-- `ConfigDict(extra="forbid")` on every object that is exported to this API.
-- Review **exported** JSON Schema, not only Python types.
-- Add a **preflight** step: reject top-level unions, missing `additionalProperties: false`, oversize / over-nested schemas, and known-bad keywords for your model class.
+---
 
-## Preflight checklist (OpenAI)
+## Caller responsibilities
 
+Schema guarantees apply to **successful** generations. The API can return `refusal` or the response may be `incomplete`. **Branch on these before parsing into your Pydantic model.**
+
+---
+
+## Preflight checklist
+
+- [ ] `strict: true` is set in the request.
 - [ ] Root is an object; no top-level `anyOf`.
-- [ ] Every object has `additionalProperties: false` / `extra="forbid"`.
-- [ ] Every field is in `required`; optionality is `T | null` as required by the guide.
-- [ ] Counts: properties, depth, enum sizes, total string length within documented limits.
-- [ ] No unsupported keywords for your model **and** transport.
-- [ ] Caller handles `refusal` / `incomplete` before parsing into the target model.
+- [ ] Every object has `additionalProperties: false`.
+- [ ] Every field is in `required`; optional semantics use `T | null`.
+- [ ] Property / nesting / enum / string length counts within documented limits.
+- [ ] No composition keywords (`allOf`, `not`, `if/then/else`).
+- [ ] Caller handles `refusal` / `incomplete` before parsing.
