@@ -7,7 +7,7 @@ An LLM skill for building strict Pydantic schemas for structured output using **
 ### Claude Code (global — all projects)
 
 ```bash
-mkdir -p ~/.claude/skills/schema-guided-reasoning-pydantic
+mkdir -p ~/.claude/skills
 git clone https://github.com/feodal01/schema-guided-reasoning-pydantic \
   ~/.claude/skills/schema-guided-reasoning-pydantic
 ```
@@ -15,7 +15,7 @@ git clone https://github.com/feodal01/schema-guided-reasoning-pydantic \
 ### Codex CLI (global — all projects)
 
 ```bash
-mkdir -p ~/.agents/skills/schema-guided-reasoning-pydantic
+mkdir -p ~/.agents/skills
 git clone https://github.com/feodal01/schema-guided-reasoning-pydantic \
   ~/.agents/skills/schema-guided-reasoning-pydantic
 ```
