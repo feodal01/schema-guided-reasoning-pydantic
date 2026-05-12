@@ -1,6 +1,6 @@
 # API call examples (Pydantic schema → provider)
 
-Copy-ready **Python** patterns: ship a JSON Schema derived from Pydantic and read structured output. Transport constraints stay in [`providers/openai-structured-outputs.md`](./providers/openai-structured-outputs.md) and [`providers/gemini.md`](./providers/gemini.md).
+Copy-ready **Python** patterns: ship a JSON Schema derived from Pydantic and read structured output. Transport constraints stay in the provider profiles under [`providers/`](./providers/).
 
 **Sources:** [openai-python `helpers.md` — Structured Outputs parsing](https://github.com/openai/openai-python/blob/main/helpers.md); [googleapis/python-genai — JSON response schema](https://github.com/googleapis/python-genai) (see repository README / codegen instructions for `GenerateContentConfig` + `response_json_schema`).
 

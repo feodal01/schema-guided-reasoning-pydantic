@@ -4,11 +4,19 @@ Gemini exposes **two** ways to get typed JSON. Behavior differs between **native
 
 **Python (`google-genai`):** `GenerateContentConfig` + `model_json_schema()` → [`../api-call-examples.md`](../api-call-examples.md#gemini-python-sdk-json-schema).
 
+Official docs:
+
+- [Gemini API structured output](https://ai.google.dev/gemini-api/docs/structured-output)
+- [Vertex AI structured output](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/control-generated-output)
+- [Gemini OpenAI compatibility](https://ai.google.dev/gemini-api/docs/openai)
+
 ---
 
 ## Native Gemini structured output (`google-genai` SDK)
 
 More permissive around optional/nullable fields and nested schemas than strict OpenAI mode. Still validate exported schema for your SDK/version. Apply SGR in-schema (route literals, branch containers, reasoning order); do not rely on descriptions alone.
+
+Gemini documents a JSON Schema subset. Unsupported fields can be ignored rather than rejected on some Gemini/Vertex surfaces, so do not assume that a keyword present in a generated Pydantic schema is part of the constrained output contract.
 
 ---
 

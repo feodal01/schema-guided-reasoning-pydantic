@@ -10,39 +10,41 @@ Passing a JSON Schema to the API does not automatically enforce every field in i
 
 > ⚠️ **This data was collected at a point in time.** Provider SO implementations change. Treat the table below as a starting reference, not a permanent guarantee. [Test your schema against the actual provider before relying on it.](#empirical-verification-workflow)
 
-From adversarial testing (prompt instructs model to violate the schema, 3–5 runs per cell):
+From adversarial testing (prompt instructs model to violate the schema, 3–5 runs per cell), plus Anthropic live checks where noted:
 
 ### Scalar / value constraints
 
-| Constraint | Pydantic field | OpenAI (no strict) | OpenAI (strict=True) | Gemini OpenAI-compat | xAI |
-|---|---|---|---|---|---|
-| `enum` / Literal route lock | `Literal[...]` | ❌ | ✅ | ✅ | ✅ |
-| `maximum` / `minimum` | `Field(le=, ge=)` | ❌ | ✅ | ✅ | ✅ |
-| `exclusiveMaximum` / `exclusiveMinimum` | `Field(lt=, gt=)` | ❌ | ✅ | ❌ | ✅ |
-| `maxLength` / `minLength` (string) | `Field(max_length=, min_length=)` | ❌ | ✅ | ❌ | ✅ |
-| `multipleOf` | `Field(multiple_of=)` | ❌ | ✅ | ❌ | ✅ |
-| `pattern` | `Field(pattern=)` | ❌ | ✅ | ❌ | ✅ |
+| Constraint | Pydantic field | OpenAI (no strict) | OpenAI (strict=True) | Gemini OpenAI-compat | Anthropic | xAI |
+|---|---|---|---|---|---|---|
+| `enum` / Literal route lock | `Literal[...]` | ❌ | ✅ | ✅ | ✅ | ✅ |
+| `maximum` / `minimum` | `Field(le=, ge=)` | ❌ | ✅ | ✅ | 💥 raw 400 / SDK-validated | ✅ |
+| `exclusiveMaximum` / `exclusiveMinimum` | `Field(lt=, gt=)` | ❌ | ✅ | ❌ | ⚠️ docs unsupported | ✅ |
+| `maxLength` / `minLength` (string) | `Field(max_length=, min_length=)` | ❌ | ✅ | ❌ | ❌ accepted, not enforced | ✅ |
+| `multipleOf` | `Field(multiple_of=)` | ❌ | ✅ | ❌ | ⚠️ docs unsupported | ✅ |
+| `pattern` | `Field(pattern=)` | ❌ | ✅ | ❌ | ✅ simple subset / complex 400 | ✅ |
 
 ### Collection / structure constraints
 
-| Constraint | Pydantic field | OpenAI (no strict) | OpenAI (strict=True) | Gemini OpenAI-compat | xAI |
-|---|---|---|---|---|---|
-| Required fields | default BaseModel | ❌ | ✅ | ✅ | ✅ |
-| `additionalProperties: false` | `ConfigDict(extra="forbid")` | ❌ | ✅ | ✅ | ✅ |
-| `maxItems` / `minItems` | `Field(max_length=, min_length=)` on list | ❌ | ✅ | ✅ / ⚠️ partial | ✅ |
-| Nested object (2 levels) | nested `BaseModel` | ❌ | ✅ | ✅ | ✅ |
-| `$defs` / `$ref` reuse | shared sub-models | ❌ | ✅ | ⚠️ partial¹ | ✅ |
+| Constraint | Pydantic field | OpenAI (no strict) | OpenAI (strict=True) | Gemini OpenAI-compat | Anthropic | xAI |
+|---|---|---|---|---|---|---|
+| Required fields | default BaseModel | ❌ | ✅ | ✅ | ✅ | ✅ |
+| `additionalProperties: false` | `ConfigDict(extra="forbid")` | ❌ | ✅ | ✅ | ✅ required | ✅ |
+| `maxItems` / `minItems` | `Field(max_length=, min_length=)` on list | ❌ | ✅ | ✅ / ⚠️ partial | 💥 `maxItems` 400; `minItems` only 0/1 | ✅ |
+| Nested object (2 levels) | nested `BaseModel` | ❌ | ✅ | ✅ | ✅ | ✅ |
+| `$defs` / `$ref` reuse | shared sub-models | ❌ | ✅ | ⚠️ partial¹ | ✅ no external refs | ✅ |
 
 ### Composition keywords
 
-| Keyword | OpenAI (strict=True) | Gemini OpenAI-compat | xAI |
-|---|---|---|---|
-| `anyOf` (nullable `T \| None`) | ✅ | ✅ | ✅ |
-| `anyOf` (`Union[A, B]`) | ✅ | ✅ | ✅ |
-| `oneOf` (discriminated union) | 💥 400 API error | ✅ | ✅ |
-| `allOf` (schema inheritance) | 💥 400 API error | ❌ returns `{}` | ❌ returns `{}` |
+| Keyword | OpenAI (strict=True) | Gemini OpenAI-compat | Anthropic | xAI |
+|---|---|---|---|---|
+| `anyOf` (nullable `T \| None`) | ✅ | ✅ | ✅ with union limits | ✅ |
+| `anyOf` (`Union[A, B]`) | ✅ | ✅ | ✅ with union limits | ✅ |
+| `oneOf` (discriminated union) | 💥 400 API error | ✅ | 💥 400 API error | ✅ |
+| `allOf` (schema inheritance) | 💥 400 API error | ❌ returns `{}` | ✅ simple / 💥 400 with `$ref` | ❌ returns `{}` |
 
 ¹ Gemini resolves `$defs` for structure, but `const` values inside `$defs` refs may not be enforced (model followed the prompt instead). Use `enum` in direct schemas rather than `const` inside `$defs` on Gemini.
+
+Anthropic column combines official documentation with live `claude-sonnet-4-6` checks through an Anthropic-compatible gateway. Unsupported constraints may be stripped by SDK helpers and validated after the response, rejected with 400 when sent raw, or accepted but not enforced (`minLength` / `maxLength`). See [`providers/anthropic.md`](./providers/anthropic.md).
 
 **Consequence:** always add service-side `model_validate` / post-validation after parsing. Treat constraints the provider does not enforce as policy (prompt + validation), not schema guarantees.
 
@@ -64,6 +66,12 @@ Provider SO implementations can change without notice (new model version, API up
 ## OpenAI: `strict: true` is mandatory
 
 Without `strict: true`, OpenAI enforces none of the constraints above—the model follows the prompt, not the schema. See [`providers/openai-structured-outputs.md`](./providers/openai-structured-outputs.md).
+
+---
+
+## Anthropic: SDK transformation can hide enforcement gaps
+
+Anthropic SDK helpers can remove unsupported constraints from the schema sent to Claude, append them to descriptions, and validate the parsed response locally. This is useful, but for SGR it means a Pydantic constraint is not necessarily part of the constrained-decoding grammar. See [`providers/anthropic.md`](./providers/anthropic.md).
 
 ---
 

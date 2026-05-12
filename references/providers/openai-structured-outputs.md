@@ -52,6 +52,7 @@ Treat this as a **transport profile**: field order, branch locks, and reasoning 
 - Every object must set `additionalProperties: false`. In Pydantic: `ConfigDict(extra="forbid")`.
 - Key ordering matters: OpenAI tends to emit keys in schema declaration order—use this as an SGR control surface (reasoning and route locks first).
 - `$defs` / recursion: supported; reuse instead of duplicating large trees.
+- `anyOf` is supported below the root only when each nested schema fits OpenAI's supported subset. Do not use a top-level discriminated union as the root response schema.
 
 ---
 
@@ -76,6 +77,8 @@ OpenAI documents these as unsupported for fine-tuned models, yet adversarial tes
 Use them, but know they may fail on fine-tuned model variants. Back up with server-side `model_validate` anyway.
 
 **Cause 400 API errors** (rejected at request time with `strict=True`): `oneOf`, `allOf`, `not`, `dependentRequired`, `dependentSchemas`, `if`, `then`, `else`.
+
+`anyOf` is allowed, but real schemas can still hit request-time validation errors when the generated shape violates OpenAI's supported subset. Prefer simple nullable unions or split branch containers for SGR routing.
 
 ---
 

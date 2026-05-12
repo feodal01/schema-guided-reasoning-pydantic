@@ -1,6 +1,6 @@
 ---
 name: schema-guided-reasoning-pydantic
-description: Design or refactor a Pydantic schema for LLM structured output using Schema-Guided Reasoning (SGR). Use when designing a response_format schema, adding route locks with Literal fields, choosing between Cascade/Routing/Cycle patterns, checking OpenAI or Gemini structured output compatibility, or making a model follow a specific reasoning path via constrained decoding.
+description: Design or refactor a Pydantic schema for LLM structured output using Schema-Guided Reasoning (SGR). Use when designing response_format/output_config schemas, adding route locks with Literal fields, choosing Cascade/Routing/Cycle patterns, checking OpenAI/Gemini/Anthropic/xAI structured output compatibility, or making a model follow a specific reasoning path via constrained decoding.
 ---
 
 # Schema-Guided Reasoning for Pydantic
@@ -9,11 +9,11 @@ Design **Schema-Guided Reasoning (SGR)** into Pydantic models used as LLM struct
 
 Use **prompt + schema** together; neither replaces the other.
 
-**Calling APIs with your Pydantic schema:** copy-ready OpenAI (`chat.completions.parse`) and Gemini (`google-genai` + `model_json_schema()`) snippets live in [`references/api-call-examples.md`](references/api-call-examples.md).
+**Calling APIs with your Pydantic schema:** copy-ready OpenAI (`chat.completions.parse`) and Gemini (`google-genai` + `model_json_schema()`) snippets live in [`references/api-call-examples.md`](references/api-call-examples.md). Provider transport constraints live in [`references/providers/`](references/providers/).
 
 ## Provider enforcement: empirical data, not permanent truth
 
-The constraint enforcement tables in `references/cross-cutting-caveats.md` and per-provider files are based on **adversarial tests run against real APIs at a specific point in time**. Provider SO implementations change—new model versions, API updates, and backend changes can silently alter which constraints are enforced.
+The constraint enforcement tables in `references/cross-cutting-caveats.md` and per-provider files are based on **adversarial tests run against real APIs at a specific point in time**, plus official documentation where a keyword was not directly exercised. Provider SO implementations change—new model versions, API updates, and backend changes can silently alter which constraints are enforced.
 
 **Before relying on any constraint as a hard guarantee:**
 1. Test your actual schema adversarially against your actual provider.
@@ -35,7 +35,7 @@ Treat the tables as a useful starting point, not a specification.
 1. **Route matrix** — branch × allowed codes × required fields × decision/score impact.
 2. **Map to SGR patterns** — Cascade (ordered steps), Routing (explicit branch), Cycle (bounded lists). Details: [`references/patterns.md`](references/patterns.md).
 3. **Choose a schema shape** compatible with your provider’s transport (split branch containers when arrays cannot carry unions). Keep one **canonical** semantic schema; add **derived** variants only where a provider forces them: [`references/README.md`](references/README.md).
-4. **Encode constraints** — `Literal`, bounded numeric/list constraints where proven safe, `extra="forbid"` on objects you export. **Required/null and strict subsets are provider-specific** → [`references/providers/openai-structured-outputs.md`](references/providers/openai-structured-outputs.md), [`references/providers/gemini.md`](references/providers/gemini.md).
+4. **Encode constraints** — `Literal`, bounded numeric/list constraints where proven safe, `extra="forbid"` on objects you export. **Required/null and strict subsets are provider-specific** → [`references/providers/openai-structured-outputs.md`](references/providers/openai-structured-outputs.md), [`references/providers/gemini.md`](references/providers/gemini.md), [`references/providers/anthropic.md`](references/providers/anthropic.md), [`references/providers/xai.md`](references/providers/xai.md).
 5. **Align the prompt** — same branch names, code sets, and required fields as the schema.
 6. **Preflight** — validate exported JSON Schema against the rules for **your** endpoint before runtime (keywords, size, nesting).
 7. **Tests** — invalid routes, missing decision fields, extra keys, export smoke checks, and **caller handling** for provider edge responses (e.g. refusal/incomplete where applicable).
@@ -88,7 +88,7 @@ Each item model carries its branch literal and its own code set; empty list mean
 - [ ] Route locks are single-value literals; branch code sets do not overlap wrongly across branches.
 - [ ] Reasoning-first field order on branch objects.
 - [ ] Canonical schema documented; provider derivatives only where required.
-- [ ] Preflight passed for **your** provider file (OpenAI / Gemini / …).
+- [ ] Preflight passed for **your** provider file (OpenAI / Gemini / Anthropic / xAI).
 - [ ] Prompt enumerates same branches and literals as the schema.
 - [ ] Tests cover bad routes, missing critical fields, export constraints, and non-parse success paths.
 
@@ -97,6 +97,10 @@ Each item model carries its branch literal and its own code set; empty list mean
 **External**
 
 - OpenAI Structured Outputs (upstream guide): [developers.openai.com — structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs)
+- Gemini Structured Output (upstream guide): [ai.google.dev — structured output](https://ai.google.dev/gemini-api/docs/structured-output)
+- Anthropic Structured Outputs (upstream guide): [docs.claude.com — structured outputs](https://docs.claude.com/en/docs/build-with-claude/structured-outputs)
+- Anthropic Strict Tool Use (upstream guide): [docs.claude.com — strict tool use](https://docs.claude.com/en/docs/agents-and-tools/tool-use/strict-tool-use)
+- xAI Structured Outputs (upstream guide): [docs.x.ai — structured outputs](https://docs.x.ai/docs/guides/structured-outputs)
 - SGR overview: [abdullin.com — schema-guided-reasoning](https://abdullin.com/schema-guided-reasoning/)
 - SGR patterns: [patterns](https://abdullin.com/schema-guided-reasoning/patterns)
 - Structured output caveats (general): [structured-output](https://abdullin.com/structured-output/)
@@ -111,5 +115,6 @@ Each item model carries its branch literal and its own code set; empty list mean
 | Cross-cutting caveats (all providers) | [`references/cross-cutting-caveats.md`](references/cross-cutting-caveats.md) |
 | OpenAI transport | [`references/providers/openai-structured-outputs.md`](references/providers/openai-structured-outputs.md) |
 | Gemini transports | [`references/providers/gemini.md`](references/providers/gemini.md) |
+| Anthropic Claude transport | [`references/providers/anthropic.md`](references/providers/anthropic.md) |
 | xAI / Grok transport | [`references/providers/xai.md`](references/providers/xai.md) |
 | API examples (OpenAI + Gemini + Pydantic) | [`references/api-call-examples.md`](references/api-call-examples.md) |

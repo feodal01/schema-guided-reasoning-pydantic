@@ -74,6 +74,7 @@ The skill walks through:
 - Encoding branch locks with `Literal[...]` fields
 - Checking the exported JSON Schema against provider constraints
 - Ready-to-copy API call examples for **OpenAI** (`chat.completions.parse`) and **Gemini** (`google-genai` + `model_json_schema()`)
+- Provider transport profiles for **OpenAI**, **Gemini**, **Anthropic**, and **xAI**
 
 ## Contents
 
@@ -86,6 +87,8 @@ The skill walks through:
 | `references/api-call-examples.md` | OpenAI and Gemini API call examples |
 | `references/providers/openai-structured-outputs.md` | OpenAI Structured Outputs rules and limits |
 | `references/providers/gemini.md` | Gemini native vs OpenAI-compatible quirks |
+| `references/providers/anthropic.md` | Anthropic `output_config.format` and strict tool use caveats |
+| `references/providers/xai.md` | xAI / Grok Structured Outputs behavior |
 
 ## Attribution
 
